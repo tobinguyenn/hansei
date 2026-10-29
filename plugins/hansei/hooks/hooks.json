@@ -1,0 +1,15 @@
+{
+  "description": "Inject the hansei lessons index: in full once per context window, then a one-line reminder per turn.",
+  "hooks": {
+    "UserPromptSubmit": [
+      { "matcher": "*", "hooks": [
+        { "type": "command",
+          "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hansei_context.py\"" } ] }
+    ],
+    "SessionStart": [
+      { "hooks": [
+        { "type": "command",
+          "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hansei_context.py\" --full" } ] }
+    ]
+  }
+}

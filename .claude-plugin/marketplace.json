@@ -1,0 +1,8 @@
+{
+  "name": "hansei",
+  "description": "Hansei: turn session mistakes into shared memory for coding assistants.",
+  "owner": { "name": "tobinguyenn" },
+  "plugins": [
+    { "name": "hansei", "source": "./plugins/hansei" }
+  ]
+}

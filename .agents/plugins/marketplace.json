@@ -1,0 +1,6 @@
+{
+  "name": "hansei",
+  "plugins": [
+    { "name": "hansei", "source": "local", "path": "./plugins/hansei" }
+  ]
+}

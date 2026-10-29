@@ -1,0 +1,6 @@
+{
+  "name": "hansei",
+  "version": "1.0.0",
+  "description": "Turn the mistakes an assistant makes in a session into shared memory that survives it.",
+  "author": { "name": "tobinguyenn" }
+}
