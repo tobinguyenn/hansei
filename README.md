@@ -255,7 +255,8 @@ inventing lessons to have something to show.
 - Work on a short-lived branch (`feat/…`, `fix/…`, `docs/…`) and merge by pull request.
 - Prefix commit messages with `feat:`, `fix:`, `docs:` or `chore:`.
 - Releases: bump `version` in both `plugin.json` files, add a `CHANGELOG.md` entry, tag
-  `vX.Y.Z` (annotated), then `gh release create vX.Y.Z --notes-file <changelog section>`.
+  `vX.Y.Z` (annotated), then `gh release create vX.Y.Z --title vX.Y.Z --notes-file <changelog section>`.
+  The tag and the release title are both exactly `vX.Y.Z`, nothing else.
 - `python3 -m unittest` must pass.
 
 ## Layout
