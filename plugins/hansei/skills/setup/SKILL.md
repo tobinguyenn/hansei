@@ -9,6 +9,8 @@ One-time wiring after installing the plugin. `<scripts-dir>` is the `scripts/` d
 
 There is no approval step: the user invoked this skill explicitly for exactly these writes, and every write is idempotent. Do not ask questions.
 
+Optional argument: `--ignored` — the user wants the project store untracked. Pass `--ignored` on to the script in steps 1 and 3; it adds `.hansei/` to the repo's `.gitignore` (idempotent, project scope only). Without it, `.gitignore` is not touched.
+
 1. Run the check and show its output:
 
    ```bash
