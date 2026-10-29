@@ -5,6 +5,13 @@ Each entry says what changed for users and whether an update needs more than
 marked **hooks changed**: Claude Code needs a restart (not just `/reload-plugins`),
 and Codex users must re-trust the hooks under `/hooks`.
 
+## 1.1.0 — 2026-10-30
+
+- `/hansei:setup --ignored` adds `.hansei/` to the repository's `.gitignore`, for repos
+  that keep lessons local. Without the flag setup does not touch `.gitignore`. The script
+  flag is `ensure_memory_pointer.py --ignored` (honours `--check`). Plain
+  `claude plugin update hansei@hansei` is enough; hooks are unchanged.
+
 ## 1.0.0 — 2026-10-30
 
 First release as a plugin. Install id `hansei@hansei`.

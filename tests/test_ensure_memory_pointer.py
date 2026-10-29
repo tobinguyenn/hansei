@@ -44,6 +44,41 @@ FOREIGN = {"hooks": {"SessionStart": [{"hooks": [{"type": "command", "command": 
                      "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "true"}]}]}}
 
 
+class TestIgnored(TempHomeCase):
+    def run_ignored(self, *extra):
+        return run_script("ensure_memory_pointer", "--scope", "project", "--ignored", *extra,
+                          home=self.home, cwd=self.repo)
+
+    def test_creates_gitignore_then_is_idempotent(self):
+        gi = self.repo / ".gitignore"
+        self.assertEqual(self.run_ignored().returncode, 0)
+        self.assertEqual(gi.read_text(), ".hansei/\n")
+        self.run_ignored()
+        self.assertEqual(gi.read_text(), ".hansei/\n")
+
+    def test_appends_after_unterminated_line_and_keeps_existing(self):
+        gi = self.repo / ".gitignore"
+        gi.write_text("__pycache__/")
+        self.run_ignored()
+        self.assertEqual(gi.read_text(), "__pycache__/\n.hansei/\n")
+
+    def test_existing_entry_variants_count(self):
+        gi = self.repo / ".gitignore"
+        gi.write_text("/.hansei\n")
+        self.run_ignored()
+        self.assertEqual(gi.read_text(), "/.hansei\n")
+
+    def test_check_reports_and_does_not_write(self):
+        r = self.run_ignored("--check")
+        self.assertEqual(r.returncode, 1, r.stderr)
+        self.assertIn("would-add", r.stdout)
+        self.assertFalse((self.repo / ".gitignore").exists())
+
+    def test_not_touched_without_flag(self):
+        run_script("ensure_memory_pointer", "--scope", "project", home=self.home, cwd=self.repo)
+        self.assertFalse((self.repo / ".gitignore").exists())
+
+
 class TestHookIdentity(unittest.TestCase):
     def test_non_string_command_is_not_a_hansei_hook(self):
         self.assertFalse(emp.is_hansei_hook({"type": "command", "command": None}))

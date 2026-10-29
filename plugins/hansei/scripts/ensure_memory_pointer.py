@@ -213,6 +213,22 @@ def write_verbatim(path: Path, text: str) -> None:
         fh.write(text)
 
 
+def ensure_ignored(root: Path, check: bool) -> str:
+    """Make sure <repo-root>/.gitignore lists the project store. Returns ok / added /
+    would-add. Existing lines and line endings are left as they were."""
+    path = root / ".gitignore"
+    raw = read_untranslated(path) if path.is_file() else ""
+    entries = {line.strip() for line in raw.splitlines()}
+    if entries & {PROJECT_STORE, PROJECT_STORE + "/", "/" + PROJECT_STORE, "/" + PROJECT_STORE + "/"}:
+        return "ok"
+    if check:
+        return "would-add"
+    nl = newline_style(raw)
+    sep = "" if not raw or raw.endswith("\n") else nl
+    write_verbatim(path, raw + sep + PROJECT_STORE + "/" + nl)
+    return "added"
+
+
 def ensure(path: Path, body: str, check: bool, header: str = "") -> str:
     """Return: ok, added, updated, missing, would-add, would-update."""
     block = render(body)
@@ -727,6 +743,9 @@ def main() -> int:
                     help="rebuild the store index from the lesson files' frontmatter")
     ap.add_argument("--dry-run", action="store_true",
                     help="with --sync-index: show the diff, write nothing; exit 1 if it differs")
+    ap.add_argument("--ignored", action="store_true",
+                    help="add the project store (.hansei/) to the repo's .gitignore "
+                         "(project scope; honours --check)")
     ap.add_argument("--list", action="store_true", help="print the agent registry and exit")
     args = ap.parse_args()
     if args.dry_run and not args.sync_index:
@@ -853,6 +872,12 @@ def main() -> int:
                         needs_work = True
                     print(f"{'hook':10} {label:8} {status:13} {settings_file}  "
                           f"[{key} {spec['event']}]")
+
+    if args.ignored and scope in ("project", "both"):
+        status = ensure_ignored(root, args.check)
+        if status == "would-add":
+            needs_work = True
+        print(f"{'gitignore':10} {'project':8} {status:13} {root / '.gitignore'}")
 
     if args.create_dirs and not args.check:
         for label, d in (("global", gstore),
