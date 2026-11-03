@@ -309,18 +309,7 @@ HOOK_SPECS: dict[str, list[dict]] = {
 }
 
 
-SHIM_REL = ".claude/skills/hansei"
-SHIM_TEXT = (
-    "---\n"
-    "name: hansei\n"
-    "description: Alias for the hansei:retro plugin skill (session retro, lessons learned). "
-    "Prefer hansei:retro when choosing a skill on your own; this alias exists so the user "
-    "can type /hansei.\n"
-    "---\n"
-    "\n"
-    "Invoke the `hansei:retro` skill now, passing these arguments through unchanged: "
-    "$ARGUMENTS\n"
-)
+LEGACY_SKILL_REL = ".claude/skills/hansei"
 
 
 def is_legacy_clone(skill_dir: Path) -> bool:
@@ -341,21 +330,6 @@ def move_legacy_skill(skill_dir: Path, check: bool, today: str) -> str:
         target = skill_dir.with_name(f"hansei.bak-{today}-{n}")
     skill_dir.rename(target)
     return "moved"
-
-
-def ensure_shim(skill_dir: Path, check: bool) -> str:
-    """Return: legacy, ok, would-add, would-update, added, updated."""
-    if is_legacy_clone(skill_dir):
-        return "legacy"
-    path = skill_dir / "SKILL.md"
-    exists = path.is_file()
-    if exists and read_untranslated(path) == SHIM_TEXT:
-        return "ok"
-    if check:
-        return "would-update" if exists else "would-add"
-    skill_dir.mkdir(parents=True, exist_ok=True)
-    write_verbatim(path, SHIM_TEXT)
-    return "updated" if exists else "added"
 
 
 def is_hansei_hook(h: dict) -> bool:
@@ -734,8 +708,6 @@ def main() -> int:
                     help="accepted for compatibility; hooks are off by default")
     ap.add_argument("--remove-hooks", action="store_true",
                     help="strip hansei hooks from the user-level settings files (honours --check)")
-    ap.add_argument("--shim", action="store_true",
-                    help="write ~/.claude/skills/hansei/SKILL.md, the /hansei alias (honours --check)")
     ap.add_argument("--remove-legacy-skill", action="store_true",
                     help="move a legacy clone at ~/.claude/skills/hansei to hansei.bak-<date> "
                          "(honours --check)")
@@ -814,22 +786,16 @@ def main() -> int:
                 needs_work = True
             print(f"{'hook':10} {label:8} {status:13} {settings_file}")
 
-    # The shim and legacy clone live under ~/.claude; without it (Codex-only machine) they
-    # are not applicable, and creating it would make --check red later.
+    # The legacy clone lives under ~/.claude; without it (Codex-only machine) it is not
+    # applicable, and creating it would make --check red later.
     claude_home = (home / ".claude").is_dir()
-    if (args.remove_legacy_skill or args.shim) and scope in ("global", "both") and claude_home:
-        skill_dir = home / SHIM_REL
-        if args.remove_legacy_skill:
-            status = move_legacy_skill(skill_dir, args.check,
-                                       datetime.date.today().isoformat())
-            if status == "would-move":
-                needs_work = True
-            print(f"{'legacy':10} {'global':8} {status:13} {skill_dir}")
-        if args.shim:
-            status = ensure_shim(skill_dir, args.check)
-            if status in ("legacy", "would-add", "would-update"):
-                needs_work = True
-            print(f"{'shim':10} {'global':8} {status:13} {skill_dir / 'SKILL.md'}")
+    if args.remove_legacy_skill and scope in ("global", "both") and claude_home:
+        skill_dir = home / LEGACY_SKILL_REL
+        status = move_legacy_skill(skill_dir, args.check,
+                                   datetime.date.today().isoformat())
+        if status == "would-move":
+            needs_work = True
+        print(f"{'legacy':10} {'global':8} {status:13} {skill_dir}")
 
     if args.check and not args.hook and not args.remove_hooks:
         for label, settings_file in hansei_hook_files(home, root, scope):
@@ -842,15 +808,12 @@ def main() -> int:
                 needs_work = True
             print(f"{'hook':10} {label:8} {status:13} {settings_file}")
 
-    if (args.check and scope in ("global", "both") and claude_home
-            and not args.shim and not args.remove_legacy_skill):
-        skill_dir = home / SHIM_REL
+    if args.check and scope in ("global", "both") and claude_home and not args.remove_legacy_skill:
+        skill_dir = home / LEGACY_SKILL_REL
         present = is_legacy_clone(skill_dir)
         print(f"{'legacy':10} {'global':8} {'present' if present else 'none':13} {skill_dir}")
-        status = ensure_shim(skill_dir, True)
-        if present or status != "ok":
+        if present:
             needs_work = True
-        print(f"{'shim':10} {'global':8} {status:13} {skill_dir / 'SKILL.md'}")
 
     # A hook is only wired for a key when that key was itself resolved for the scope --
     # same gating that decides whether the pointer block gets written, kept consistent

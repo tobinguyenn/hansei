@@ -133,59 +133,34 @@ class TestRemoveHooks(TempHomeCase):
         self.assertEqual(r.returncode, 2)
 
 
-class TestShim(TempHomeCase):
+class TestLegacySkill(TempHomeCase):
     def setUp(self):
         super().setUp()
         (self.home / ".claude").mkdir()
 
-    def shim(self): return self.home / ".claude" / "skills" / "hansei" / "SKILL.md"
+    def legacy_dir(self): return self.home / ".claude" / "skills" / "hansei"
 
-    def test_shim_added_then_ok(self):
-        r1 = run_script("ensure_memory_pointer", "--shim", "--scope", "global", home=self.home, cwd=self.repo)
-        self.assertIn("added", r1.stdout)
-        text = self.shim().read_text()
-        self.assertTrue(text.startswith("---\nname: hansei\n"))
-        self.assertIn("Invoke the `hansei:retro` skill now, passing these arguments through unchanged: $ARGUMENTS", text)
-        r2 = run_script("ensure_memory_pointer", "--shim", "--scope", "global", home=self.home, cwd=self.repo)
-        self.assertRegex(r2.stdout, r"shim\s+global\s+ok\s")
-
-    def test_shim_overwrites_stale(self):
-        self.shim().parent.mkdir(parents=True); self.shim().write_text("old")
-        r = run_script("ensure_memory_pointer", "--shim", "--scope", "global", home=self.home, cwd=self.repo)
-        self.assertIn("updated", r.stdout)
-
-    def test_shim_check_does_not_write(self):
-        r = run_script("ensure_memory_pointer", "--shim", "--check", "--scope", "global", home=self.home, cwd=self.repo)
-        self.assertEqual(r.returncode, 1)
-        self.assertFalse(self.shim().exists())
-
-    def test_shim_refuses_over_legacy_clone(self):
-        legacy = self.shim().parent
+    def test_remove_legacy_moves_clone(self):
+        legacy = self.legacy_dir()
         (legacy / "scripts").mkdir(parents=True)
         (legacy / "scripts" / "ensure_memory_pointer.py").write_text("# clone")
-        (legacy / "SKILL.md").write_text("# old skill")
-        r = run_script("ensure_memory_pointer", "--shim", "--check", "--scope", "global", home=self.home, cwd=self.repo)
-        self.assertRegex(r.stdout, r"shim\s+global\s+legacy\s")
-        self.assertEqual((legacy / "SKILL.md").read_text(), "# old skill")
-
-    def test_remove_legacy_moves_then_shim_writes(self):
-        legacy = self.shim().parent
-        (legacy / "scripts").mkdir(parents=True)
-        (legacy / "scripts" / "ensure_memory_pointer.py").write_text("# clone")
-        r = run_script("ensure_memory_pointer", "--remove-legacy-skill", "--shim", "--scope", "global", home=self.home, cwd=self.repo)
+        r = run_script("ensure_memory_pointer", "--remove-legacy-skill", "--scope", "global", home=self.home, cwd=self.repo)
         self.assertRegex(r.stdout, r"legacy\s+global\s+moved\s")
-        self.assertRegex(r.stdout, r"shim\s+global\s+added\s")
+        self.assertNotRegex(r.stdout, r"(?m)^shim\s")
         baks = list((self.home / ".claude" / "skills").glob("hansei.bak-*"))
         self.assertEqual(len(baks), 1)
         self.assertTrue((baks[0] / "scripts" / "ensure_memory_pointer.py").exists())
 
-    def test_remove_legacy_on_plain_shim_is_none(self):
-        run_script("ensure_memory_pointer", "--shim", "--scope", "global", home=self.home, cwd=self.repo)
+    def test_remove_legacy_on_plain_alias_file_is_none(self):
+        legacy = self.legacy_dir()
+        legacy.mkdir(parents=True)
+        (legacy / "SKILL.md").write_text("---\nname: hansei\n---\nold alias\n")
         r = run_script("ensure_memory_pointer", "--remove-legacy-skill", "--scope", "global", home=self.home, cwd=self.repo)
         self.assertRegex(r.stdout, r"legacy\s+global\s+none\s")
+        self.assertEqual((legacy / "SKILL.md").read_text(), "---\nname: hansei\n---\nold alias\n")
 
     def test_remove_legacy_check_reports_would_move_and_writes_nothing(self):
-        legacy = self.shim().parent
+        legacy = self.legacy_dir()
         (legacy / "scripts").mkdir(parents=True)
         (legacy / "scripts" / "ensure_memory_pointer.py").write_text("# clone")
         r = run_script("ensure_memory_pointer", "--remove-legacy-skill", "--check", "--scope", "global", home=self.home, cwd=self.repo)
@@ -193,6 +168,11 @@ class TestShim(TempHomeCase):
         self.assertRegex(r.stdout, r"legacy\s+global\s+would-move\s")
         self.assertTrue((legacy / "scripts" / "ensure_memory_pointer.py").exists())
         self.assertEqual(list((self.home / ".claude" / "skills").glob("hansei.bak-*")), [])
+
+    def test_shim_flag_is_gone(self):
+        r = run_script("ensure_memory_pointer", "--shim", "--scope", "global", home=self.home, cwd=self.repo)
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("--shim", r.stderr)
 
 
 class TestIndexDriftViaCheck(TempHomeCase):
@@ -345,16 +325,25 @@ class TestCheckAdditions(TempHomeCase):
         r = run_script("ensure_memory_pointer", "--check", "--hook", "--scope", "global", home=self.home, cwd=self.repo)
         self.assertNotIn("duplicate", r.stdout)
 
-    def test_check_reports_shim_and_legacy(self):
+    def test_check_reports_legacy_none(self):
         (self.home / ".claude").mkdir()
         r = run_script("ensure_memory_pointer", "--check", "--scope", "global", home=self.home, cwd=self.repo)
         self.assertRegex(r.stdout, r"legacy\s+global\s+none\s")
-        self.assertRegex(r.stdout, r"shim\s+global\s+would-add\s")
         self.assertEqual(r.returncode, 1)
+
+    def test_check_ignores_existing_alias_file(self):
+        alias = self.home / ".claude" / "skills" / "hansei"
+        alias.mkdir(parents=True)
+        (alias / "SKILL.md").write_text("---\nname: hansei\n---\nold alias\n")
+        run_script("ensure_memory_pointer", "--scope", "global", "--create-dirs", "--remove-hooks", "--remove-legacy-skill", home=self.home, cwd=self.repo)
+        r = run_script("ensure_memory_pointer", "--check", "--scope", "global", home=self.home, cwd=self.repo)
+        self.assertEqual(r.returncode, 0, r.stdout)
+        self.assertNotRegex(r.stdout, r"(?m)^shim\s")
+        self.assertRegex(r.stdout, r"legacy\s+global\s+none\s")
 
     def test_all_green_after_setup_sequence(self):
         (self.home / ".claude").mkdir()
-        run_script("ensure_memory_pointer", "--scope", "global", "--create-dirs", "--remove-hooks", "--remove-legacy-skill", "--shim", home=self.home, cwd=self.repo)
+        run_script("ensure_memory_pointer", "--scope", "global", "--create-dirs", "--remove-hooks", "--remove-legacy-skill", home=self.home, cwd=self.repo)
         r = run_script("ensure_memory_pointer", "--check", "--scope", "global", home=self.home, cwd=self.repo)
         self.assertEqual(r.returncode, 0, r.stdout)
 
@@ -365,11 +354,10 @@ class TestCheckAdditions(TempHomeCase):
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
         self.assertRegex(r.stdout, r"hook\s+global\s+invalid\s")
         self.assertRegex(r.stdout, r"legacy\s+global\s+none\s")
-        self.assertRegex(r.stdout, r"shim\s+global\s")
 
     def test_codex_only_home_setup_then_check_is_green(self):
         (self.home / ".codex").mkdir()
-        r1 = run_script("ensure_memory_pointer", "--scope", "global", "--create-dirs", "--remove-hooks", "--remove-legacy-skill", "--shim", home=self.home, cwd=self.repo)
+        r1 = run_script("ensure_memory_pointer", "--scope", "global", "--create-dirs", "--remove-hooks", "--remove-legacy-skill", home=self.home, cwd=self.repo)
         self.assertEqual(r1.returncode, 0, r1.stdout + r1.stderr)
         r = run_script("ensure_memory_pointer", "--check", "--scope", "global", home=self.home, cwd=self.repo)
         self.assertEqual(r.returncode, 0, r.stdout)
@@ -394,7 +382,7 @@ class TestCheckAdditions(TempHomeCase):
         r = run_script("ensure_memory_pointer", "--check", "--scope", "global", home=self.home, cwd=self.repo)
         self.assertEqual(r.returncode, 1)
         self.assertIn("not wired up", r.stdout)
-        run_script("ensure_memory_pointer", "--scope", "global", "--create-dirs", "--shim", home=self.home, cwd=self.repo)
+        run_script("ensure_memory_pointer", "--scope", "global", "--create-dirs", home=self.home, cwd=self.repo)
         (self.home / ".claude" / "settings.json").write_text("{bad")
         r = run_script("ensure_memory_pointer", "--check", "--scope", "global", home=self.home, cwd=self.repo)
         self.assertEqual(r.returncode, 1)

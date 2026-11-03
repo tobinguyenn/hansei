@@ -24,7 +24,11 @@ class TestSkills(unittest.TestCase):
 
     def test_setup_and_sync_name_their_flags(self):
         setup = (SKILLS / "setup/SKILL.md").read_text()
-        self.assertIn("--scope default --create-dirs --remove-hooks --remove-legacy-skill --shim", setup)
+        self.assertIn("--scope default --create-dirs --remove-hooks --remove-legacy-skill", setup)
+        self.assertNotIn("--shim", setup)
+        for p in (SKILLS / "setup/SKILL.md", SKILLS / "check/SKILL.md", SKILLS / "sync/SKILL.md"):
+            self.assertNotIn("shim", p.read_text(), p)
+            self.assertNotIn("alias", p.read_text(), p)
         sync = (SKILLS / "sync/SKILL.md").read_text()
         self.assertIn("--sync-index --dry-run --scope default", sync)
         check = (SKILLS / "check/SKILL.md").read_text()

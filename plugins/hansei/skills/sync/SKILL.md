@@ -28,4 +28,4 @@ description: Repair the hansei lesson indexes so every lesson file is listed and
    python3 <scripts-dir>/ensure_memory_pointer.py --check --scope default
    ```
 
-6. Anything outside the index that the check reports (missing pointer block, duplicated hook, missing shim) is reported with "run `/hansei:setup`", not fixed here.
+6. Anything outside the index that the check reports (missing pointer block, duplicated hook, legacy clone) is reported with "run `/hansei:setup`", not fixed here.
