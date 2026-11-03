@@ -41,7 +41,7 @@ that reach the repo through the `github.tobi` SSH alias, use the URL form.
 
 | Command | Does |
 |---|---|
-| `/hansei:retro [--scope ...]` | Session retro; `/hansei` is an alias on Claude Code |
+| `/hansei:retro [--scope ...]` | Session retro |
 | `/hansei:setup` | One-time wiring, idempotent |
 | `/hansei:sync` | Repair indexes, shows a diff first |
 | `/hansei:check` | Read-only health check |
@@ -203,13 +203,12 @@ The four skills are thin wrappers over a few more flags, which you can also run 
 | `--hook` | wire the user-level context hooks (clone installs only; the plugin ships its own) |
 | `--remove-hooks` | strip user-level hansei hooks left by an old clone install |
 | `--remove-legacy-skill` | move an old clone at `~/.claude/skills/hansei` aside to `hansei.bak-<date>` |
-| `--shim` | write the `/hansei` alias skill (Claude Code only; skipped when `~/.claude` is absent) |
 | `--ignored` | add `.hansei/` to the repo's `.gitignore` (project scope; `/hansei:setup --ignored`) |
 | `--sync-index [--dry-run]` | rebuild each store's `HANSEI.md` from the lesson files; `--dry-run` shows the diff and writes nothing |
 
-`/hansei:setup` runs `--create-dirs --remove-hooks --remove-legacy-skill --shim`; `/hansei:sync`
+`/hansei:setup` runs `--create-dirs --remove-hooks --remove-legacy-skill`; `/hansei:sync`
 runs `--sync-index --dry-run`, waits for approval, then `--sync-index`; `/hansei:check` runs
-`--check`. Under `--check` the hook, shim and legacy items are reported too.
+`--check`. Under `--check` the hook and legacy items are reported too.
 
 By default it wires **every assistant it finds evidence of** — `~/.claude`, `~/.codex`,
 `~/.gemini` for global scope; `CLAUDE.md`, `AGENTS.md`, `.cursor`, `.github` in the repo for

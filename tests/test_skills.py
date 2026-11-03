@@ -26,7 +26,7 @@ class TestSkills(unittest.TestCase):
         setup = (SKILLS / "setup/SKILL.md").read_text()
         self.assertIn("--scope default --create-dirs --remove-hooks --remove-legacy-skill", setup)
         self.assertNotIn("--shim", setup)
-        for p in (SKILLS / "setup/SKILL.md", SKILLS / "check/SKILL.md"):
+        for p in (SKILLS / "setup/SKILL.md", SKILLS / "check/SKILL.md", SKILLS / "sync/SKILL.md"):
             self.assertNotIn("shim", p.read_text(), p)
             self.assertNotIn("alias", p.read_text(), p)
         sync = (SKILLS / "sync/SKILL.md").read_text()

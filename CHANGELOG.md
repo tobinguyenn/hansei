@@ -5,6 +5,14 @@ Each entry says what changed for users and whether an update needs more than
 marked **hooks changed**: Claude Code needs a restart (not just `/reload-plugins`),
 and Codex users must re-trust the hooks under `/hooks`.
 
+## 1.2.0 — 2026-11-03
+
+- The `/hansei` alias skill is gone; type `/hansei:retro` for the session retro. `/hansei:setup`
+  no longer writes `~/.claude/skills/hansei/SKILL.md` and `/hansei:check` no longer reports it.
+  If an earlier setup left that file on your machine, delete it by hand; the script never
+  touches it. The script flag `--shim` is removed. Plain `claude plugin update hansei@hansei`
+  is enough; hooks are unchanged.
+
 ## 1.1.0 — 2026-10-30
 
 - `/hansei:setup --ignored` adds `.hansei/` to the repository's `.gitignore`, for repos
