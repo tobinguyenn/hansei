@@ -1,6 +1,6 @@
 ---
 name: setup
-description: 'One-time wiring of hansei after installing the plugin: creates the lesson stores, writes the pointer blocks, removes old user-level hansei hooks, and installs the `/hansei` alias. Idempotent. Run only when the user asks for hansei setup.'
+description: 'One-time wiring of hansei after installing the plugin: creates the lesson stores, writes the pointer blocks, removes old user-level hansei hooks, and moves an old clone aside. Idempotent. Run only when the user asks for hansei setup.'
 ---
 
 # Hansei setup
@@ -22,7 +22,7 @@ Optional argument: `--ignored` — the user wants the project store untracked. P
 3. Otherwise run the setup and show its output. If it exits 2 (for example a malformed settings file, named in the error message), show the error and the named file, tell the user to fix or remove that file, and stop:
 
    ```bash
-   python3 <scripts-dir>/ensure_memory_pointer.py --scope default --create-dirs --remove-hooks --remove-legacy-skill --shim
+   python3 <scripts-dir>/ensure_memory_pointer.py --scope default --create-dirs --remove-hooks --remove-legacy-skill
    ```
 
 4. Summarise every path touched, grouped as created, updated, removed, moved.
